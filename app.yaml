@@ -1,15 +1,47 @@
-runtime: nodejs20
-service: exchange-book
-instance_class: F1
+# cloudbuild.frontend.yaml
+steps:
+  # Step 1: Install dependencies
+  # Memasang dependensi Node.js.
+  # Menggunakan cache npm untuk mempercepat proses jika node_modules sudah ada.
+  - name: "gcr.io/cloud-builders/npm"
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        if [ ! -d "node_modules" ]; then
+          echo "Installing dependencies..."
+          npm ci
+        else
+          echo "Skipping npm install, node_modules exists."
+        fi
+    dir: "frontend" # Pastikan perintah ini dijalankan di dalam direktori 'frontend'
+    volumes:
+      - name: "npm-cache"
+        path: /root/.npm
 
-handlers:
-  - url: /static
-    static_dir: build/static
+  # Step 2: Build frontend
+  # Membangun aplikasi frontend.
+  # Output build (misalnya, direktori 'build') akan dibuat di dalam 'frontend'.
+  - name: "gcr.io/cloud-builders/npm"
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        npm run build
+    dir: "frontend" # Pastikan perintah ini dijalankan di dalam direktori 'frontend'
+    volumes:
+      - name: "npm-cache"
+        path: /root/.npm
 
-  - url: /(.*\.(js|css|map|json|png|jpg|jpeg|gif|ico|svg|webp))
-    static_files: build/\1
-    upload: build/.*\.(js|css|map|json|png|jpg|jpeg|gif|ico|svg|webp)
+  # Step 3: Deploy ke App Engine
+  # Mendeploy aplikasi ke Google App Engine.
+  # Karena 'dir: "frontend"', gcloud akan mencari app.yaml di dalam direktori 'frontend'.
+  - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
+    entrypoint: gcloud
+    args: ["app", "deploy", "--quiet"]
+    dir: "frontend" # Sangat penting: Pastikan app.yaml ada di dalam direktori 'frontend'
+    # Jika Anda ingin app.yaml tetap di root, Anda harus menghapus 'dir: "frontend"' dari langkah ini
+    # atau menyalin app.yaml ke direktori 'frontend' sebelum langkah deploy.
 
-  - url: /.*
-    static_files: build/index.html
-    upload: build/index.html
+options:
+  logging: CLOUD_LOGGING_ONLY
