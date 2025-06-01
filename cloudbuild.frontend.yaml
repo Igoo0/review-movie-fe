@@ -1,5 +1,9 @@
+# cloudbuild.frontend.yaml (PERBAIKAN)
+# Semua 'dir: "frontend"' telah dihapus karena proyek dan app.yaml berada di root repositori.
 steps:
   # Step 1: Install dependencies
+  # Memasang dependensi Node.js.
+  # Karena package.json ada di root, perintah ini dijalankan langsung di root.
   - name: "gcr.io/cloud-builders/npm"
     entrypoint: bash
     args:
@@ -11,28 +15,29 @@ steps:
         else
           echo "Skipping npm install, node_modules exists."
         fi
-    dir: "frontend"
     volumes:
       - name: "npm-cache"
         path: /root/.npm
 
-  # Step 2: Build frontend 
+  # Step 2: Build frontend
+  # Membangun aplikasi frontend.
+  # Karena package.json ada di root, perintah ini dijalankan langsung di root.
   - name: "gcr.io/cloud-builders/npm"
     entrypoint: bash
     args:
       - -c
       - |
         npm run build
-    dir: "frontend"
-    volumes:  
+    volumes:
       - name: "npm-cache"
         path: /root/.npm
 
   # Step 3: Deploy ke App Engine
+  # Mendeploy aplikasi ke Google App Engine.
+  # Karena app.yaml ada di root, gcloud akan menemukannya secara otomatis.
   - name: "gcr.io/google.com/cloudsdktool/cloud-sdk"
     entrypoint: gcloud
     args: ["app", "deploy", "--quiet"]
-    dir: "frontend"
 
 options:
   logging: CLOUD_LOGGING_ONLY
